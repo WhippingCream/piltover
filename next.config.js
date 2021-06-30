@@ -3,8 +3,8 @@ module.exports = {
   rewrites: async () => {
     return [
       {
-        source: "/api/:path*",
-        destination: `${process.env.API_SERVER_PATH}/api/:path*`,
+        source: "/ornn-api/:path*",
+        destination: `${process.env.BACK_URL}/api/:path*`,
       },
     ];
   },
