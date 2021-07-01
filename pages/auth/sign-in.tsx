@@ -20,7 +20,7 @@ export default function SignInPage({ session }: { session: PiltoverSession }) {
     if (session) {
       router.push("/");
     }
-  }, [session]);
+  }, [session, router]);
 
   return (
     <div className={styles.container}>
