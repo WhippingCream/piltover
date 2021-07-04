@@ -1,6 +1,7 @@
-import { User } from "next-auth";
-
-export interface PiltoverSession {
-  user: User;
-  ornnUser: string;
+export interface OrnnUser {
+  id: number;
+  username: string;
+  accessToken: string;
+  gender?: "male" | "female";
+  birth?: Date;
 }

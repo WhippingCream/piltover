@@ -1,29 +1,68 @@
-import NextAuth from "next-auth";
-import Providers from "next-auth/providers";
-import { client } from "../../../lib/api-client";
+import NextAuth, { Session, User } from "next-auth";
+
+import { OrnnUser } from "../../../types/auth";
+import { handler } from "../../../lib/api-client";
 
 export default NextAuth({
   providers: [
-    Providers.Kakao({
-      clientId: process.env.KAKAO_REST_KEY,
-    }),
+    {
+      id: "kakao",
+      name: "Kakao",
+      type: "oauth",
+      version: "2.0",
+      scope: "",
+      params: { grant_type: "authorization_code" },
+      accessTokenUrl: "https://kauth.kakao.com/oauth/token",
+      authorizationUrl:
+        "https://kauth.kakao.com/oauth/authorize?response_type=code",
+      profileUrl: "https://kapi.kakao.com/v2/user/me",
+      profile(profile) {
+        const user: User = {
+          oauth: {
+            provider: "kakao",
+            userId: profile.id as string,
+          },
+        };
+
+        return { user, id: profile.id as string };
+      },
+      clientId: process.env.KAKAO_REST_KEY as string,
+      clientSecret: "",
+    },
   ],
   callbacks: {
-    async session(session, token) {
-      let ornnUser;
+    session: async (session, token) => {
+      const user: User = {
+        oauth: {
+          provider: "kakao",
+          userId: token.sub as string,
+        },
+      };
 
       try {
-        const { data } = await client.put("/ornn-api/v1/auth/sign-in", {
-          memberId: token.sub,
-          provider: "kakao",
+        const result = await handler<OrnnUser>({
+          method: "put",
+          url: "/ornn-api/v1/auth/sign-in",
+          data: {
+            memberId: token.sub,
+            provider: "kakao",
+          },
         });
 
-        ornnUser = data;
+        user.username = result?.username;
+        user.accessToken = result?.accessToken;
+        user.birth = result?.birth;
+        user.gender = result?.gender;
       } catch (e) {
-        ornnUser = null;
+        return null;
       }
 
-      return { ...session, token, ornnUser };
+      const newSession: Session = {
+        user,
+        expires: session.expires,
+      };
+
+      return newSession;
     },
   },
 });

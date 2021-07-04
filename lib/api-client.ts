@@ -1,15 +1,27 @@
-import axios from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-export const client = axios.create({
-  baseURL: process.env.FRONT_URL,
-});
+import { getSession } from 'next-auth/client';
 
-client.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    console.error(error.response.data);
-    return Promise.reject(error);
+export const handler = async <T>(config: AxiosRequestConfig) => {
+  const session = await getSession();
+
+  const { headers, ...withoutHeaders } = config;
+
+  try {
+    const result: AxiosResponse<T> = await axios({
+      ...withoutHeaders,
+      baseURL: process.env.FRONT_URL,
+      headers: !session
+        ? headers
+        : {
+            ...headers,
+            Authorization: `Bearer ${session.user?.accessToken}`,
+          },
+    });
+
+    return result.data;
+  } catch (e) {
+    console.error(e);
+    return null;
   }
-);
+};

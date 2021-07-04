@@ -1,51 +1,61 @@
-import styles from "../styles/Home.module.css";
-import { signOut, getSession } from "next-auth/client";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import HomeStyles from "../styles/home.module.css";
 import { NextPageContext } from "next";
-import { PiltoverSession } from "../types/auth";
+import SignInWidget from "../components/SignInWidget";
+import SignUpWidget from "../components/SignUpWidget";
+import { useRouter } from "next/dist/client/router";
+import { useSession } from "next-auth/client";
 
 export const getServerSideProps = async (context: NextPageContext) => {
-  const session = await getSession(context);
-
-  if (session) {
-    console.log(session);
-  }
-
-  // try {
-  //   const result = await client.get<string>("/ornn-api/v1");
-  //   if (result.data) {
-  //     data = result.data;
-  //   }
-  //   console.log(context);
-  // } catch (e) {
-  //   data = "fetch failed";
-  // }
-
   return {
-    props: { session },
+    props: {},
   };
 };
 
-function HomePage({ session }: { session: PiltoverSession }) {
+const IndexPage = () => {
+  type Mode = "LOADING" | "SIGN_IN" | "SIGN_UP";
+
+  const [mode, setMode] = useState<Mode>("SIGN_IN");
+  const [session, loading] = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (!session) {
-      router.push("/auth/sign-in");
-    } else if (!session.ornnUser) {
-      router.push("/auth/sign-up");
+    if (loading) {
+      setMode("LOADING");
+    } else if (!session) {
+      setMode("SIGN_IN");
+    } else if (!session.user?.accessToken) {
+      setMode("SIGN_UP");
+    } else {
+      router.push("/home");
     }
-  }, [session]);
+  }, [session, loading, router]);
+
+  if (loading) {
+    return <>loading...</>;
+  }
+
+  const getContent = (mode: Mode) => {
+    switch (mode) {
+      case "LOADING":
+        return <>loading...</>;
+      case "SIGN_IN":
+        return <SignInWidget />;
+      case "SIGN_UP":
+        return <SignUpWidget />;
+    }
+  };
 
   return (
-    <div className={styles.container}>
-      <main className={styles.main}>
-        <p>대충 컨텐츠</p>
-        <button onClick={() => signOut()}>로그아웃</button>
-      </main>
-    </div>
+    <>
+      <div className={HomeStyles.container}>
+        <main className={HomeStyles.main}>
+          <div className={HomeStyles.panel}>{getContent(mode)}</div>
+        </main>
+      </div>
+    </>
   );
-}
+};
 
-export default HomePage;
+export default IndexPage;
